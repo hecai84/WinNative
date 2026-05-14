@@ -65,6 +65,11 @@ public class VulkanRenderer
     public boolean viewportNeedsUpdate = true;
     private boolean cursorVisible = true;
     public boolean swapRB = false;
+
+    public void setSwapRB(boolean v) {
+        this.swapRB = v;
+        requestRenderCoalesced();
+    }
     private boolean screenOffsetYRelativeToCursor = false;
     private String[] unviewableWMClasses = null;
     private float magnifierZoom = 1.0f;
