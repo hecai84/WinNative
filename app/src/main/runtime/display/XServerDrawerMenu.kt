@@ -337,6 +337,7 @@ data class XServerDrawerState(
     val inputControlsOverlayOpacity: Float = 0.4f,
     val inputControlsTouchscreenHaptics: Boolean = false,
     val inputControlsGamepadVibration: Boolean = true,
+    val inputControlsGcmRumbleMode: String = "disabled",
 )
 
 class XServerDrawerStateHolder(
@@ -524,6 +525,8 @@ interface XServerDrawerActionListener {
 
     fun onInputControlsGamepadVibrationChanged(enabled: Boolean)
 
+    fun onInputControlsGcmRumbleModeChanged(mode: String)
+
     fun onInputControlsEditClick()
 
     fun onTaskManagerVisibilityChanged(visible: Boolean)
@@ -593,6 +596,7 @@ fun buildXServerDrawerState(
     inputControlsOverlayOpacity: Float = 0.4f,
     inputControlsTouchscreenHaptics: Boolean = false,
     inputControlsGamepadVibration: Boolean = true,
+    inputControlsGcmRumbleMode: String = "disabled",
     fullscreenEnabled: Boolean = false,
     maxRefreshRate: Int = 60,
 ): XServerDrawerState {
@@ -751,6 +755,7 @@ fun buildXServerDrawerState(
         inputControlsOverlayOpacity = inputControlsOverlayOpacity,
         inputControlsTouchscreenHaptics = inputControlsTouchscreenHaptics,
         inputControlsGamepadVibration = inputControlsGamepadVibration,
+        inputControlsGcmRumbleMode = inputControlsGcmRumbleMode,
     )
 }
 
@@ -1731,12 +1736,14 @@ private fun InputControlsPaneContent(
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val paneScale = computePaneScale(maxHeight)
+        val scrollState = rememberScrollState()
+        val gcmEnabled = state.inputControlsGcmRumbleMode != "disabled"
         CompositionLocalProvider(LocalPaneScale provides paneScale) {
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scrollState)
                         .padding(horizontal = (12f * paneScale).dp, vertical = (12f * paneScale).dp),
                 verticalArrangement = Arrangement.spacedBy((10f * paneScale).dp),
             ) {
@@ -1807,6 +1814,49 @@ private fun InputControlsPaneContent(
                     checked = state.inputControlsGamepadVibration,
                     onCheckedChange = listener::onInputControlsGamepadVibrationChanged,
                 )
+
+                LaunchedEffect(gcmEnabled) {
+                    if (gcmEnabled) scrollState.animateScrollTo(Int.MAX_VALUE)
+                }
+
+                DrawerBooleanRow(
+                    title = "GameSir Rumble Hack",
+                    subtitle = "For Android-mode GameSir controllers only",
+                    checked = gcmEnabled,
+                    onCheckedChange = { enabled ->
+                        listener.onInputControlsGcmRumbleModeChanged(if (enabled) "known" else "disabled")
+                    },
+                )
+
+                if (gcmEnabled) {
+                    Column(verticalArrangement = Arrangement.spacedBy((8f * paneScale).dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy((8f * paneScale).dp),
+                        ) {
+                            HUDToggleChip(
+                                label = "Known",
+                                checked = state.inputControlsGcmRumbleMode == "known",
+                                onClick = { listener.onInputControlsGcmRumbleModeChanged("known") },
+                                modifier = Modifier.weight(1f),
+                            )
+                            HUDToggleChip(
+                                label = "All (experimental)",
+                                checked = state.inputControlsGcmRumbleMode == "all",
+                                onClick = { listener.onInputControlsGcmRumbleModeChanged("all") },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Text(
+                            text = if (state.inputControlsGcmRumbleMode == "all")
+                                "All GameSir devices"
+                            else
+                                "G8+ MFi, X5s, X3 Pro",
+                            color = DrawerTextSecondary,
+                            fontSize = (11f * paneScale).sp,
+                        )
+                    }
+                }
             }
         }
     }
@@ -4084,6 +4134,7 @@ private fun DrawerBooleanRow(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    subtitle: String? = null,
 ) {
     val paneScale = LocalPaneScale.current
     val rowInteractionSource = remember { MutableInteractionSource() }
@@ -4129,12 +4180,11 @@ private fun DrawerBooleanRow(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text =
-                    if (checked) {
-                        stringResource(R.string.common_ui_enabled)
-                    } else {
-                        stringResource(R.string.common_ui_disabled)
-                    },
+                text = subtitle ?: if (checked) {
+                    stringResource(R.string.common_ui_enabled)
+                } else {
+                    stringResource(R.string.common_ui_disabled)
+                },
                 color = DrawerTextSecondary,
                 fontSize = (12f * paneScale).sp,
             )

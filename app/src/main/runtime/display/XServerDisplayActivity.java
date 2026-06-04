@@ -3745,6 +3745,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 preferences.getFloat("overlay_opacity", InputControlsView.DEFAULT_OVERLAY_OPACITY),
                 preferences.getBoolean("touchscreen_haptics_enabled", false),
                 preferences.getBoolean(ControllerManager.PREF_VIBRATION_GLOBAL, true),
+                preferences.getString(
+                    com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.PREF_KEY,
+                    com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.DISABLED.toPrefValue()),
                 xServerView != null && xServerView.getRenderer() != null && xServerView.getRenderer().isFullscreen(),
                 RefreshRateUtils.getMaxSupportedRefreshRate(this)
         );
@@ -4043,6 +4046,20 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     public void onInputControlsGamepadVibrationChanged(boolean enabled) {
                         preferences.edit().putBoolean(ControllerManager.PREF_VIBRATION_GLOBAL, enabled).commit();
                         if (winHandler != null) winHandler.setGlobalVibrationEnabled(enabled);
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onInputControlsGcmRumbleModeChanged(String mode) {
+                        com.winlator.cmod.runtime.input.rumble.GcmRumbleMode gcmMode =
+                            com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.fromPrefValue(mode);
+                        preferences
+                            .edit()
+                            .putString(
+                                com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.PREF_KEY,
+                                gcmMode.toPrefValue())
+                            .commit();
+                        if (winHandler != null) winHandler.setGcmRumbleMode(gcmMode);
                         renderDrawerMenu();
                     }
 
